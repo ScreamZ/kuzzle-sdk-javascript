@@ -423,6 +423,8 @@ declare namespace Kuzzle {
      */
     export type EventHandlerCallback = (...args) => void;
 
+    export type OnDoneObject = {onDone: (callback) => void}
+
     /**
      * Unix timestamp
      */
@@ -670,10 +672,166 @@ declare namespace Kuzzle {
          * @param callback - Returns an instantiated KuzzleDocument object
          */
         updateDocument(documentId: string, content:any, options?: QueryOptions, callback?: ResponseCallback): DataCollection;
+
+        /**
+         * Instantiate a new KuzzleDocument object.
+         *
+         * @param id - Document id
+         * @param content - Document content
+         */
+        documentFactory(id?: string, content?: any): Document;
+
+        /**
+         * Instantiate a new KuzzleRoom object.
+         *
+         * @param options - Subscription configuration
+         */
+        roomFactory(options?: Kuzzle.RoomOptions): Room;
+
+        /**
+         * Instantiate a new KuzzleDataMapping object.
+         *
+         * @param mapping - Mapping to instantiate the KuzzleDataMapping object with
+         */
+        dataMappingFactory(mapping?: Kuzzle.MappingOptions): DataMapping;
+
+        /**
+         * Helper function allowing to set headers while chaining calls.
+         *
+         * If the replace argument is set to true, replace the current headers with the provided content.
+         * Otherwise, it appends the content to the current headers, only replacing already existing values
+         *
+         * Note: by default, the replace argument is set to false
+         *
+         * @param content - new headers content
+         * @param replace - true: replace the current content with the provided data, false: merge it
+         */
+        setHeaders(content: any, replace?: boolean): DataCollection;
     }
 
-
     export interface Document {
+        /**
+         * Serialize this object into a JSON object
+         */
+        serialize(): any;
+
+        /**
+         * Overrides the toString() method in order to return a serialized version of the document
+         */
+        toString(): string;
+
+        /**
+         * Replaces the current content with the last version of this document stored in Kuzzle.
+         *
+         * @param options - Optional parameters
+         * @param callback - Handles the query response
+         */
+        refresh(options?: QueryOptions, callback?: ResponseCallback): Document;
+
+        /**
+         * Saves this document into Kuzzle.
+         *
+         * If this is a new document, this function will create it in Kuzzle and the id property will be made available.
+         * Otherwise, this method will replace the latest version of this document in Kuzzle by the current content
+         * of this object.
+         *
+         * Takes an optional argument object with the following properties:
+         *    - metadata (object, default: null):
+         *        Additional information passed to notifications to other users
+         *
+         * @param options - Optional parameters
+         * @param callback - Handles the query response
+         */
+        save(options?: QueryOptions, callback?: ResponseCallback): Document;
+
+        /**
+         * Sends the content of this document as a realtime message.
+         *
+         * Takes an optional argument object with the following properties:
+         *    - metadata (object, default: null):
+         *        Additional information passed to notifications to other users
+         *
+         * @param options - Optional parameters
+         */
+        publish(options?: QueryOptions): Document;
+
+        /**
+         * Replaces the current content with new data.
+         * Changes made by this function won’t be applied until the save method is called.
+         *
+         * @param data - New content
+         * @param replace - if true: replace this document content with the provided data
+         */
+        setContent(data: any, replace?: boolean): Document;
+
+        /**
+         * Listens to events concerning this document. Has no effect if the document does not have an ID
+         * (i.e. if the document has not yet been created as a persisted document).
+         *
+         * @param options - subscription options
+         * @param callback - callback that will be called each time a change has been detected on this document
+         */
+        subscribe(options?: RoomOptions, callback?: ResponseCallback): OnDoneObject;
+
+        /**
+         * Helper function allowing to set headers while chaining calls.
+         *
+         * If the replace argument is set to true, replace the current headers with the provided content.
+         * Otherwise, it appends the content to the current headers, only replacing already existing values
+         *
+         * @param content - new headers content
+         * @param replace - default: false = append the content. If true: replace the current headers with tj
+         */
+        setHeaders(content: any, replace?: boolean): Document;
+    }
+
+    export interface Room {
+        /**
+         * Returns the number of other subscriptions on that room.
+         *
+         * @param callback - Resolves to a integer containing the number of users subscribing to this room.
+         */
+        count(callback: ResponseCallback): void;
+
+        /**
+         * Renew the subscription using new filters
+         *
+         * @param filters - Filters in Kuzzle DSL format
+         * @param notificationCallback - called for each new notification
+         * @param subscriptionCallback - handles the query response
+         */
+        renew(filters: any, notificationCallback: ResponseCallback, subscriptionCallback: ResponseCallback): void;
+
+        /**
+         * Renew the subscription
+         *
+         * @param notificationCallback - called for each new notification
+         * @param subscriptionCallback - handles the query response
+         */
+        renew(notificationCallback: ResponseCallback, subscriptionCallback: ResponseCallback): void;
+
+        /**
+         * Unsubscribes from Kuzzle.
+         *
+         * Stop listening immediately. If there is no listener left on that room, sends an unsubscribe request to Kuzzle, once
+         * pending subscriptions reaches 0, and only if there is still no listener on that room.
+         * We wait for pending subscriptions to finish to avoid unsubscribing while another subscription on that room is
+         */
+        unsubscribe(): Room;
+
+        /**
+         * Helper function allowing to set headers while chaining calls.
+         *
+         * If the replace argument is set to true, replace the current headers with the provided content.
+         * Otherwise, it appends the content to the current headers, only replacing already existing values
+         *
+         * @param content - new headers content
+         * @param replace - default: false = append the content. If true: replace the current headers with tj
+         */
+        setHeaders(content: any, replace?: boolean): Room;
+    }
+
+    export interface DataMapping {
 
     }
 
@@ -745,5 +903,18 @@ declare namespace Kuzzle {
         action: string;
         index?: string;
         collection?: string;
+    }
+
+    export interface RoomOptions {
+        metadata?: any;
+        scope?: "in" | "out" | "all" | "none";
+        state?: "peding" | "done" | "all";
+        subscribeToSelf?: boolean;
+        users?: "in" | "out" | "all";
+    }
+
+    export interface MappingOptions {
+        headers?: any;
+        mapping?: any;
     }
 }
