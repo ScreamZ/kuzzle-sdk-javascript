@@ -647,7 +647,7 @@ declare namespace Kuzzle {
          * @param options - additional arguments
          * @param callback - Returns an instantiated KuzzleDocument object
          */
-        replaceDocument(documentId: string, content:any, options?: QueryOptions, callback?: ResponseCallback): DataCollection;
+        replaceDocument(documentId: string, content: any, options?: QueryOptions, callback?: ResponseCallback): DataCollection;
 
         /**
          * Subscribes to this data collection with a set of filters.
@@ -671,7 +671,7 @@ declare namespace Kuzzle {
          * @param options - Optional parameters
          * @param callback - Returns an instantiated KuzzleDocument object
          */
-        updateDocument(documentId: string, content:any, options?: QueryOptions, callback?: ResponseCallback): DataCollection;
+        updateDocument(documentId: string, content: any, options?: QueryOptions, callback?: ResponseCallback): DataCollection;
 
         /**
          * Instantiate a new KuzzleDocument object.
@@ -833,10 +833,113 @@ declare namespace Kuzzle {
 
     export interface DataMapping {
 
+        /**
+         * Applies the new mapping to the data collection.
+         *
+         * @param options - Optional parameters
+         * @param callback - Handles the query response
+         */
+        apply(options?: QueuableOptions, callback?: ResponseCallback): DataMapping;
+
+        /**
+         * Replaces the current content with the mapping stored in Kuzzle
+         *
+         * Calling this function will discard any uncommited changes. You can commit changes by calling the “apply” function
+         *
+         * @param options - Optional parameters
+         * @param callback - Handles the query response
+         */
+        refresh(options?: QueuableOptions, callback?: ResponseCallback): DataMapping;
+
+        /**
+         * Adds or updates a field mapping.
+         *
+         * Changes made by this function won’t be applied until you call the apply method
+         *
+         * @param field - Name of the field from which the mapping is to be added or updated
+         * @param mapping - corresponding field mapping
+         */
+        set(field: string, mapping: any): DataMapping;
+
+        /**
+         * Helper function allowing to set headers while chaining calls.
+         *
+         * If the replace argument is set to true, replace the current headers with the provided content.
+         * Otherwise, it appends the content to the current headers, only replacing already existing values
+         *
+         * @param content - new headers content
+         * @param replace - default: false = append the content. If true: replace the current headers with tj
+         */
+        setHeaders(content, replace: boolean): DataMapping;
     }
 
     export interface Security {
+        /**
+         * Retrieve a single Role using its unique role ID.
+         *
+         * @param id
+         * @param options - Optional parameters
+         * @param callback - returns Kuzzle's response
+         */
+        getRole(id: string, options?: QueuableOptions, callback?: ResponseCallback): void;
+
+        /**
+         * Executes a search on roles according to a filter
+         *
+         * /!\ There is a small delay between role creation and their existence in our persistent search layer,
+         * usually a couple of seconds.
+         * That means that a role that was just been created won’t be returned by this function.
+         *
+         * @param filters - this object can contains an array `indexes` with a list of index id, a integer `from` and a integer `size`
+         * @param options - Optional parameters
+         * @param callback - returns Kuzzle's response
+         *
+         */
+        searchRoles(filters: {indexes?: string[], from?: number, to?: number }, options?: QueuableOptions, callback?: ResponseCallback): void;
+
+        /**
+         * Create a new role in Kuzzle.
+         *
+         * Takes an optional argument object with the following property:
+         *    - replaceIfExist (boolean, default: false):
+         *        If the same role already exists: throw an error if sets to false.
+         *        Replace the existing role otherwise
+         *
+         * @param id - role identifier
+         * @param content - a plain javascript object representing the role
+         * @param options - (optional) arguments
+         * @param callback - (optional) Handles the query response
+         */
+        createRole(id: string, content: any, options?: {replaceIfExist?: boolean, queuable?: boolean}, callback?: ResponseCallback): void;
+        updateRole(id: string, content, options, callback: ResponseCallback): Security;
+        deleteRole(id: string, options, callback: ResponseCallback): Security;
+        roleFactory(id, content): Role;
+        getProfile(id, options, callback: ResponseCallback): void;
+        searchProfiles(filters, options, callback: ResponseCallback): void;
+        createProfile(id, content, options, callback: ResponseCallback): void;
+        updateProfile(id, content, options, callback: ResponseCallback): void;
+        deleteProfile(id, options, callback: ResponseCallback): Security;
+        profileFactory(id, content): Profile;
+        getUser(id, options, callback: ResponseCallback): void;
         searchUsers(filter: any, options?: any, callback?: (err: any, res: any) => any): any
+        createUser(id, content, options, callback: ResponseCallback): void;
+        updateUser(id, content, options, cb): Security;
+        deleteUser(id, options, callback: ResponseCallback): Security;
+        userFactory(id, content): User;
+        isActionAllowed(rights, controller, action, index, collection): 'allowed' | 'denied' | 'conditional';
+        getUserRights(userId, options, callback: ResponseCallback): void;
+    }
+
+    export interface Role {
+
+    }
+
+    export interface Profile {
+
+    }
+
+    export interface User {
+
     }
 
     export interface ConnectOptions {
@@ -877,7 +980,7 @@ declare namespace Kuzzle {
         /**
          * Upper bounds for paginated results
          */
-        from: number;
+            from: number;
         /**
          * Mark this request as (not) queuable
          */
