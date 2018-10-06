@@ -30,9 +30,9 @@ class Kuzzle extends KuzzleEventEmitter {
 
   /**
    * @param network - the network wrapper to use. if the argument is a string, creates an embeed network wrapper if a
-   * @param [options] - Connection options
+   * @param [options] - Connection options, see each protocol for details.
    */
-  constructor(network, options = {}) {
+  constructor(network, options) {
     super();
 
     if (network === undefined || network === null) {
